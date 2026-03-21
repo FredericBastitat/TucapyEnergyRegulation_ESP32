@@ -37,8 +37,7 @@ void setup() {
 }
 
 void loop() {
-    // tvůj kód zde...
-
     OTA::check();
+    server.handleClient();
     delay(2000); // kontroluj každých 60s
 }
