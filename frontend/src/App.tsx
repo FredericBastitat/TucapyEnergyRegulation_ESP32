@@ -1,0 +1,242 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Zap, 
+  Battery, 
+  Activity, 
+  Cpu, 
+  Terminal, 
+  RefreshCcw, 
+  Globe, 
+  Wifi, 
+  WifiOff, 
+  Info
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ref, onValue } from 'firebase/database';
+import { db } from './firebase';
+import './App.css';
+
+interface DashboardData {
+  batteryPower: number;
+  batteryCurrent: number;
+  gridCurrent: number;
+  soc: number;
+  statusMsg: string;
+  logs: string;
+  version: string;
+  connected: boolean;
+}
+
+const App: React.FC = () => {
+  const [data, setData] = useState<DashboardData>({
+    batteryPower: 0,
+    batteryCurrent: 0,
+    gridCurrent: 0,
+    soc: 0,
+    statusMsg: 'Initializace...',
+    logs: 'Connecting to Firebase...',
+    version: '1.0.0-rev',
+    connected: false
+  });
+
+  const consoleRef = useRef<HTMLPreElement>(null);
+
+  // Auto-scroll console
+  useEffect(() => {
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [data.logs]);
+
+  // Connect to Firebase Realtime Database
+  useEffect(() => {
+    const energyRef = ref(db, 'energy_data');
+    const logsRef = ref(db, 'system_logs');
+
+    // Subscribe to energy updates
+    const unsubscribeEnergy = onValue(energyRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const val = snapshot.val();
+        setData(prev => ({
+          ...prev,
+          batteryPower: val.battery_P || 0,
+          batteryCurrent: val.battery_I || 0,
+          gridCurrent: val.grid_I || 0,
+          soc: val.battery_soc || 0,
+          statusMsg: val.status_msg || prev.statusMsg,
+          version: val.version || prev.version,
+          connected: true
+        }));
+      }
+    });
+
+    // Subscribe to logs
+    const unsubscribeLogs = onValue(logsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const logVal = snapshot.val();
+        // Assuming logs are stored as a long string or an array
+        const logBody = typeof logVal === 'string' ? logVal : JSON.stringify(logVal, null, 2);
+        setData(prev => ({
+          ...prev,
+          logs: logBody
+        }));
+      }
+    });
+
+    return () => {
+      unsubscribeEnergy();
+      unsubscribeLogs();
+    };
+  }, []);
+
+  return (
+    <div className="app-container">
+      <header>
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="header-left"
+        >
+          <h1>Tucapy Energy</h1>
+          <div className="version-tag">{data.version}</div>
+        </motion.div>
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`status-badge ${data.connected ? '' : 'offline'}`}
+        >
+          {data.connected ? <Wifi size={14} /> : <WifiOff size={14} />}
+          {data.connected ? 'Cloud Connected' : 'Connecting...'}
+        </motion.div>
+      </header>
+
+      <div className="grid">
+        <StatCard 
+          icon={<Zap size={20} color="#38bdf8" />} 
+          label="Battery Power" 
+          value={data.batteryPower} 
+          unit="kW" 
+          index={0}
+        />
+        <StatCard 
+          icon={<Activity size={20} color="#10b981" />} 
+          label="Battery Current" 
+          value={data.batteryCurrent} 
+          unit="A" 
+          index={1}
+        />
+        <StatCard 
+          icon={<Cpu size={20} color="#fbbf24" />} 
+          label="Grid Current" 
+          value={data.gridCurrent} 
+          unit="A" 
+          index={2}
+        />
+        <StatCard 
+          icon={<Battery size={20} color="#38bdf8" />} 
+          label="Battery SOC" 
+          value={data.soc} 
+          unit="%" 
+          showBar
+          index={3}
+        />
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="status-message"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+          <Info size={16} />
+          {data.statusMsg}
+        </div>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="console-card"
+      >
+        <div className="console-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Terminal size={14} />
+            <span>SYSTEM CONSOLE LOGS</span>
+          </div>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          >
+            <RefreshCcw size={12} color="#94a3b8" />
+          </motion.div>
+        </div>
+        <pre ref={consoleRef} className="console-body">
+          {data.logs}
+        </pre>
+      </motion.div>
+
+      <footer>
+        &copy; 2024 Tucapy Energy Regulation &bull; Firebase Infrastructure
+      </footer>
+    </div>
+  );
+};
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  unit: string;
+  showBar?: boolean;
+  index: number;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ icon, label, value, unit, showBar, index }) => {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 * index }}
+      className="card"
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="card-title">{label}</div>
+        {icon}
+      </div>
+      <div className="card-value-container">
+        <AnimatePresence mode="wait">
+          <motion.span 
+            key={value}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="card-value"
+          >
+            {value}
+          </motion.span>
+        </AnimatePresence>
+        <span className="card-unit">{unit}</span>
+      </div>
+      {showBar && (
+        <div className="soc-bar-container">
+          <motion.div 
+            className="soc-bar" 
+            initial={{ width: 0 }}
+            animate={{ width: `${value}%` }}
+            transition={{ type: "spring", stiffness: 50 }}
+            style={{ 
+              backgroundColor: value < 20 ? '#ef4444' : (value < 50 ? '#fbbf24' : '#10b981')
+            }}
+          />
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+export default App;
+

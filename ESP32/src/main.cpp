@@ -6,6 +6,7 @@
 #include "logger.h"
 #include "webui.h"
 #include "modbus_handler.h"
+#include "firebase_handler.h"
 
 #define WIFI_SSID "DvorNet"
 #define WIFI_PASS "dvor62tuc"
@@ -78,6 +79,9 @@ void setup() {
     // Inicializace Modbus
     ModbusHandler::setup();
     
+    // Inicializace Firebase
+    FirebaseHandler::setup();
+    
     // Inicializace výstupů
     for (int pin : outputs) {
         pinMode(pin, OUTPUT);
@@ -138,6 +142,16 @@ void loop() {
                 lastSwitch = millis();
             }
         }
+
+        // Push to Firebase RTDB for the modern Vercel UI
+        FirebaseHandler::updateData(
+            ModbusHandler::battery_P,
+            ModbusHandler::battery_I,
+            ModbusHandler::grid_I,
+            ModbusHandler::battery_soc,
+            ModbusHandler::status_msg,
+            currentVersion
+        );
     }
     
 }
