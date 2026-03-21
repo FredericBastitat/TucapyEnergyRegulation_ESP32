@@ -2,6 +2,71 @@
 #include <WebServer.h>
 #include <WiFi.h>
 #include <ModbusMaster.h>
+#include <HTTPClient.h>
+#include <Update.h>
+
+#define CURRENT_VERSION  "1.0.0"
+#define VERSION_URL "https://raw.githubusercontent.com/FredericBastitat/TucapyEnergyRegulation/main/version.txt"
+#define FIRMWARE_URL "https://raw.githubusercontent.com/FredericBastitat/TucapyEnergyRegulation/main/firmware.bin"
+
+Preferences prefs;
+
+String getCurrentSHA() {
+    prefs.begin("ota", true);
+    String sha = prefs.getString("sha", "");
+    prefs.end();
+    return sha;
+}
+
+void saveSHA(String sha) {
+    prefs.begin("ota", false);
+    prefs.putString("sha", sha);
+    prefs.end();
+}
+
+String fetchString(String url) {
+    HTTPClient http;
+    http.begin(url);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    String result = "";
+    if (http.GET() == 200) {
+        result = http.getString();
+        result.trim();
+    }
+    http.end();
+    return result;
+}
+
+void checkAndUpdate() {
+    Serial.println("Kontroluji verzi...");
+    String latestSHA = fetchString(VERSION_URL);
+    if (latestSHA.isEmpty()) return;
+
+    if (latestSHA == getCurrentSHA()) {
+        Serial.println("Firmware je aktualni.");
+        return;
+    }
+
+    Serial.println("Novy firmware nalezen, stahuji...");
+    HTTPClient http;
+    http.begin(FIRMWARE_URL);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
+    if (http.GET() == 200) {
+        int size = http.getSize();
+        WiFiClient* stream = http.getStreamPtr();
+
+        if (Update.begin(size)) {
+            Update.writeStream(*stream);
+            if (Update.end(true)) {
+                saveSHA(latestSHA);
+                Serial.println("Update OK, restartuji...");
+                ESP.restart();
+            }
+        }
+    }
+    http.end();
+}
 
 // Konfigurace RS485 (Serial0 - zakladni RX/TX piny)
 #define DE_RE_PIN 18 
@@ -25,6 +90,27 @@ WebServer server(80);
 
 void preTransmission() { digitalWrite(DE_RE_PIN, HIGH); }
 void postTransmission() { digitalWrite(DE_RE_PIN, LOW); }
+
+void doOTA() {
+    HTTPClient http;
+    http.begin(FIRMWARE_URL);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    
+    int code = http.GET();
+    if (code == 200) {
+        int size = http.getSize();
+        WiFiClient* stream = http.getStreamPtr();
+        
+        if (Update.begin(size)) {
+            Update.writeStream(*stream);
+            if (Update.end(true)) {
+                Serial.println("OTA OK, restartuji...");
+                ESP.restart();
+            }
+        }
+    }
+    http.end();
+}
 
 void handleRoot() {
   String html = "<html><head><meta charset='UTF-8'><meta http-equiv='refresh' content='5'></head>";
@@ -55,6 +141,10 @@ void setup() {
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) { delay(500); }
   
+  checkAndUpdate();
+
+
+
   server.on("/", handleRoot);
   server.begin();
 }
