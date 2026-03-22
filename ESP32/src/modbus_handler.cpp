@@ -39,36 +39,29 @@ bool readRegister(uint16_t reg_addr, uint8_t reg_count, T &value, const char* na
 bool readBatteryData()
 {
     bool ok = true;
-    
-    // Blok 1: výkon, proud
-    uint8_t res = node.readHoldingRegisters(REG_BATTERY_POWER, 6);
-    if (res == node.ku8MBSuccess) {
-        int32_t raw_P = (int32_t)(((uint32_t)node.getResponseBuffer(0) << 16) | node.getResponseBuffer(1));
+
+    int32_t raw_P = 0;
+    if (readRegister<int32_t>(REG_BATTERY_POWER, 2, raw_P,"BP"))
         battery_P = raw_P / 1000.0;
-        
-        int16_t rawI_bat = (int16_t)node.getResponseBuffer(2);
-        battery_I = (rawI_bat / 10.0) * -1.0;
-        
-        int32_t raw_Grid = (int32_t)(((uint32_t)node.getResponseBuffer(4) << 16) | node.getResponseBuffer(5));
-        grid_I = (raw_Grid / 1000.0) * -1.0;
-    } else {
-        webLog("Chyba bloku 30k: 0x" + String(res, HEX));
-        ok = false; 
-    }
+    else ok = false;
 
-    delay(200); // ← zvýšit ze 100 na 200
-
-    // Blok 2: SOC
     uint16_t rawSOC = 0;
-    if (readRegister<uint16_t>(REG_SOC, 1, rawSOC, "SOC")) {
+    if (readRegister<uint16_t>(REG_SOC, 1, rawSOC,"SOC"))
         battery_soc = rawSOC / 100.0;
-    } else {
-        ok = false;
-    }
+    else ok = false;
+
+    int16_t rawI = 0;
+    if (readRegister<int16_t>(REG_BATTERY_I, 1, rawI,"BI"))
+        battery_I = (rawI / 10.0) * -1;
+    else ok = false;
+
+    int32_t rawGrid = 0;
+    if (readRegister<int32_t>(REG_GRID_I, 2, rawGrid,"GI"))
+        grid_I = (rawGrid / 1000.0) * -1;
+    else ok = false;
 
     return ok;
 }
-
 
 
 void setup() {

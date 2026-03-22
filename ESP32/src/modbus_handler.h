@@ -12,6 +12,8 @@ namespace ModbusHandler {
 // Registry
 #define SLAVE_ID 247
 #define REG_BATTERY_POWER 30258
+#define REG_BATTERY_I     30255
+#define REG_GRID_I        11000
 #define REG_SOC           33000
 
 // Data střídače (exportovaná pro WebUI)
