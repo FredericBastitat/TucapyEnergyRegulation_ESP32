@@ -5,7 +5,7 @@
 #include "logger.h"
 
 // Define these in your private config or use placeholders
-#define FIREBASE_HOST "tucapyenergy-default-rtdb.europe-west1.firebasedatabase.app"
+#define FIREBASE_DATABASE_URL "https://tucapyenergy-default-rtdb.europe-west1.firebasedatabase.app"
 #define API_KEY "AIzaSyAA9CCYeT44Mt8BLOkqpL4uu3cp5gpaevs"
 
 namespace FirebaseHandler {
@@ -15,12 +15,15 @@ FirebaseAuth auth;
 FirebaseConfig config;
 
 void setup() {
-    config.host = FIREBASE_HOST;
+    config.database_url = FIREBASE_DATABASE_URL;
     config.api_key = API_KEY;
 
     // Connect without auth or use anonymous login for simple RTDB
     Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
+
+    // Testovací zápis hned po startu, aby databáze nebyla "null"
+    Firebase.RTDB.setString(&fbdo, "/system_logs", "ESP32 System Started - Firebase Connected");
 }
 
 void updateData(float battery_P, float battery_I, float grid_I, float battery_soc, String status_msg, String version) {

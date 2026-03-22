@@ -66,6 +66,13 @@ const App: React.FC = () => {
           version: val.version || prev.version,
           connected: true
         }));
+      } else {
+        // Node empty: ESP32 likely hasn't pushed yet
+        setData(prev => ({
+          ...prev,
+          statusMsg: 'Čekám na data z procesoru...',
+          connected: true
+        }));
       }
     });
 
