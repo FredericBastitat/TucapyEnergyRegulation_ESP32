@@ -51,7 +51,7 @@ bool readBatteryData()
     // 2. SOC (Holding - změněno z Input kvůli chybě 0xe2)
     uint16_t rawSOC = 0;
     if (readRegister<uint16_t>(REG_SOC, 1, rawSOC, "SOC")) { 
-        battery_soc = rawSOC / 1.0; // Většina měničů vrací přímo %
+        battery_soc = rawSOC / 100.0;
     } else ok = false;
 
     delay(100);
