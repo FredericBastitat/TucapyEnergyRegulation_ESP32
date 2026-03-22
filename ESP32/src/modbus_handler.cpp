@@ -65,7 +65,7 @@ bool readBatteryData()
     // 3. Proud baterie
     int16_t rawI = 0;
     if (readRegister<int16_t>(REG_BATTERY_I, 1, rawI, "BI")) {
-        battery_I = (rawI / 100.0) * -1.0;
+        battery_I = (rawI / 10.0) * -1.0;
     } else errors++;
 
     delay(100);
