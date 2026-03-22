@@ -54,7 +54,6 @@ const App: React.FC = () => {
   // Handle Authentication and Firebase connection
   useEffect(() => {
     let unsubscribeEnergy: () => void;
-    let unsubscribeConsole: () => void;
 
     // Securely sign in anonymously
     signInAnonymously(auth)
@@ -62,9 +61,8 @@ const App: React.FC = () => {
         setData(prev => ({ ...prev, authenticated: true }));
         
         const energyRef = ref(db, 'energy_data');
-        const consoleRef = ref(db, 'console_logs');
 
-        // Subscribe to energy updates
+        // Subscribe to energy updates (includes console logs)
         unsubscribeEnergy = onValue(energyRef, (snapshot: any) => {
           if (snapshot.exists()) {
             const val = snapshot.val();
@@ -76,31 +74,14 @@ const App: React.FC = () => {
               soc: val.battery_soc || 0,
               statusMsg: val.status_msg || prev.statusMsg,
               version: val.version || prev.version,
+              logs: val.console_log || prev.logs,
               connected: true
             }));
           } else {
-            // Node empty: ESP32 likely hasn't pushed yet
             setData(prev => ({
               ...prev,
               statusMsg: 'Čekám na data z procesoru...',
               connected: true
-            }));
-          }
-        });
-
-        // Subscribe to console logs from ESP32
-        unsubscribeConsole = onValue(consoleRef, (snapshot: any) => {
-          if (snapshot.exists()) {
-            const logVal = snapshot.val();
-            const logBody = typeof logVal === 'string' ? logVal : JSON.stringify(logVal, null, 2);
-            setData(prev => ({
-              ...prev,
-              logs: logBody
-            }));
-          } else {
-            setData(prev => ({
-              ...prev,
-              logs: 'Čekám na logy z ESP32...\nNode /console_logs zatím neexistuje v Firebase.'
             }));
           }
         });
@@ -112,7 +93,6 @@ const App: React.FC = () => {
 
     return () => {
       if (unsubscribeEnergy) unsubscribeEnergy();
-      if (unsubscribeConsole) unsubscribeConsole();
     };
   }, []);
 

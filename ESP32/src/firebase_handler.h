@@ -10,21 +10,17 @@
 namespace FirebaseHandler {
 
 FirebaseData fbdo;
-FirebaseData fbdo_logs;  // Samostatný objekt pro konzolové logy
 FirebaseAuth auth;
 FirebaseConfig config;
 
 void setup() {
     config.database_url = FIREBASE_DATABASE_URL;
     config.api_key = API_KEY;
-    
-    // Test mode – ESP32 nemá přihlašovací údaje
     config.signer.test_mode = true;
 
     Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
 
-    // Počkáme na inicializaci
     unsigned long t = millis();
     while (!Firebase.ready() && millis() - t < 5000) {
         delay(100);
@@ -37,7 +33,7 @@ void setup() {
     }
 }
 
-void updateData(float battery_P, float battery_I, float grid_I, float battery_soc, String status_msg, String version) {
+void updateData(float battery_P, float battery_I, float grid_I, float battery_soc, String status_msg, String version, const String& consoleLogs) {
     if (!Firebase.ready()) {
         static unsigned long lastWarn = 0;
         if (millis() - lastWarn > 10000) {
@@ -45,6 +41,12 @@ void updateData(float battery_P, float battery_I, float grid_I, float battery_so
             lastWarn = millis();
         }
         return;
+    }
+
+    // Oriznuty log buffer (max 1500 znaku)
+    String trimmedLogs = consoleLogs;
+    if (trimmedLogs.length() > 1500) {
+        trimmedLogs = trimmedLogs.substring(trimmedLogs.length() - 1500);
     }
 
     FirebaseJson json;
@@ -55,25 +57,11 @@ void updateData(float battery_P, float battery_I, float grid_I, float battery_so
     json.set("status_msg", status_msg);
     json.set("version", version);
     json.set("last_update", (int)(millis() / 1000));
+    json.set("console_log", trimmedLogs);
 
     if (!Firebase.RTDB.setJSON(&fbdo, "/energy_data", &json)) {
         webLog("FB err(" + String(fbdo.httpCode()) + "): " + fbdo.errorReason());
     }
 }
 
-// Odesílá konzolové logy do Firebase pro zobrazení ve Vercel app
-void pushConsoleLogs(const String& logBuffer) {
-    if (!Firebase.ready()) return;
-    
-    String trimmed = logBuffer;
-    if (trimmed.length() > 2000) {
-        trimmed = trimmed.substring(trimmed.length() - 2000);
-    }
-
-    if (!Firebase.RTDB.setString(&fbdo_logs, "/console_logs", trimmed)) {
-        Serial.println("Console log push failed: " + fbdo_logs.errorReason());
-    }
-}
-
 } // namespace FirebaseHandler
-
