@@ -81,6 +81,15 @@ void setup() {
     ModbusHandler::setup();
     FirebaseHandler::setup();
 
+    if(FirebaseHandler::recoverData(idx,power_mode))
+    {
+        for (size_t i = 0; i < idx; i++)
+        {
+            digitalWrite(i,LOW);
+        }
+        
+    }
+
     // Vesion (basead on commit)
     currentVersion = OTA::getCurrentSHA();
     if (currentVersion == "") currentVersion = "boot from USB";
@@ -137,7 +146,8 @@ void loop() {
             ModbusHandler::status_msg,
             currentVersion,
             logBuffer,
-            idx
+            idx,
+            power_mode
         );
     }
 }

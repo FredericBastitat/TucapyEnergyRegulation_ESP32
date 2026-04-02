@@ -7,11 +7,14 @@
 #define FIREBASE_DATABASE_URL "tucapyenergy-default-rtdb.europe-west1.firebasedatabase.app"
 #define API_KEY "AIzaSyAA9CCYeT44Mt8BLOkqpL4uu3cp5gpaevs"
 
+
+
 namespace FirebaseHandler {
 
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
+
 
 void setup() {
     config.database_url = FIREBASE_DATABASE_URL;
@@ -33,7 +36,32 @@ void setup() {
     }
 }
 
-void updateData(float battery_P, float battery_I, float grid_I, float battery_soc, String status_msg, String version, const String& consoleLogs, int relay_idx) {
+bool checkDataAge(FirebaseJson & json)
+{
+    FirebaseJsonData res;
+    json.get(res,"last_update");
+    int timediff=time(NULL) - res.intValue;
+    return (timediff>60);
+}
+
+bool recoverData(int & idx, bool & power_mode)
+{
+    if(!Firebase.RTDB.getJSON(&fbdo,"/energy_data"))return false;
+    FirebaseJson* json = fbdo.jsonObjectPtr();
+    if(!checkDataAge(*json))return false;
+
+    FirebaseJsonData res;
+    json->get(res,"idx");
+    idx=res.intValue;
+    
+    json->get(res,"power_mode");
+    power_mode=res.intValue;
+    return true;
+}
+
+
+
+void updateData(float battery_P, float battery_I, float grid_I, float battery_soc, String status_msg, String version, const String& consoleLogs, int relay_idx,bool power_mode) {
     if (!Firebase.ready()) {
         static unsigned long lastWarn = 0;
         if (millis() - lastWarn > 10000) {
@@ -55,9 +83,10 @@ void updateData(float battery_P, float battery_I, float grid_I, float battery_so
     json.set("battery_soc", battery_soc);
     json.set("status_msg", status_msg);
     json.set("version", version);
-    json.set("last_update", (int)(millis() / 1000));
     json.set("console_log", trimmedLogs);
     json.set("relay_idx", relay_idx);
+    json.set("power_mod",power_mode);
+    json.set("last_update", (int)time(NULL));
 
     if (!Firebase.RTDB.setJSON(&fbdo, "/energy_data", &json)) {
         webLog("FB err(" + String(fbdo.httpCode()) + "): " + fbdo.errorReason());
