@@ -151,21 +151,21 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`app-wrapper ${isAdmin ? 'has-sidebar' : ''}`}>
-      {isAdmin && (
-        <aside className="sidebar">
-          <div className="sidebar-logo">
-            <Zap size={24} color="#38bdf8" />
-            <span>TUCAPY</span>
-          </div>
-          <nav className="sidebar-nav">
-            <button 
-              className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
-            >
-              <LayoutDashboard size={20} />
-              <span>Monitoring</span>
-            </button>
+    <div className="app-wrapper has-sidebar">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <Zap size={24} color="#38bdf8" />
+          <span>TUCAPY</span>
+        </div>
+        <nav className="sidebar-nav">
+          <button 
+            className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <LayoutDashboard size={20} />
+            <span>Monitoring</span>
+          </button>
+          {isAdmin && (
             <button 
               className={`nav-item ${activeTab === 'console' ? 'active' : ''}`}
               onClick={() => setActiveTab('console')}
@@ -173,15 +173,22 @@ const App: React.FC = () => {
               <Terminal size={20} />
               <span>Systémová konzole</span>
             </button>
-          </nav>
-          <div className="sidebar-footer">
+          )}
+        </nav>
+        <div className="sidebar-footer">
+          {isAdmin ? (
             <button className="logout-btn" onClick={handleLogout}>
               <LogOut size={18} />
               <span>Odhlásit</span>
             </button>
-          </div>
-        </aside>
-      )}
+          ) : (
+            <button className="nav-item login-nav" onClick={() => setShowLogin(true)}>
+              <UserIcon size={20} />
+              <span>Admin Login</span>
+            </button>
+          )}
+        </div>
+      </aside>
 
       <div className="main-content">
         <header>
@@ -206,12 +213,6 @@ const App: React.FC = () => {
             className="header-right"
             style={{ display: 'flex', gap: '8px' }}
           >
-            {!isAdmin && (
-              <button className="icon-button login" onClick={() => setShowLogin(true)} title="Admin vstup">
-                <UserIcon size={16} />
-              </button>
-            )}
-
             {data.authenticated && (
               <div className={`status-badge ${isSystemOnline ? 'secure' : 'offline'}`}>
                 <Cpu size={12} />
