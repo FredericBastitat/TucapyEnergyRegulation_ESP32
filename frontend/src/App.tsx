@@ -81,6 +81,13 @@ const App: React.FC = () => {
   const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'graphs' | 'console' | 'settings'>('dashboard');
   const [dataHistory, setDataHistory] = useState<HistoryPoint[]>([]);
+  const [os, setOs] = useState<'windows' | 'linux' | 'other'>('other');
+
+  useEffect(() => {
+    const platform = window.navigator.platform.toLowerCase();
+    if (platform.includes('win')) setOs('windows');
+    else if (platform.includes('linux')) setOs('linux');
+  }, []);
 
   // Settings state (visual only for now)
   const [settings, setSettings] = useState({
@@ -199,7 +206,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="app-wrapper has-sidebar">
+    <div className={`app-wrapper has-sidebar os-${os}`}>
       <aside className="sidebar">
         <div className="sidebar-logo">
           <Zap size={24} color="#38bdf8" />
