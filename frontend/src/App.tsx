@@ -121,11 +121,18 @@ const App: React.FC = () => {
     let unsubscribeBattery: (() => void) | undefined;
     let unsubscribeWeb: (() => void) | undefined;
     let unsubscribeRecovery: (() => void) | undefined;
+    let unsubscribeConnected: (() => void) | undefined;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user: User | null) => {
       if (user) {
         setData(prev => ({ ...prev, authenticated: true }));
         setIsAdmin(!user.isAnonymous);
+
+        // --- 0. NEZÁVISLÝ STAV SPOJENÍ S FIREBASE ---
+        const connectedRef = ref(db, '.info/connected');
+        unsubscribeConnected = onValue(connectedRef, (snap) => {
+          setData(prev => ({ ...prev, connected: snap.val() === true }));
+        });
 
         // --- 1. DATA O ELEKTŘINĚ ---
         const batteryRef = ref(db, 'battery_data');
@@ -137,8 +144,7 @@ const App: React.FC = () => {
               batteryPower: val.P || 0,
               batteryCurrent: val.I || 0,
               gridCurrent: val.grid_I || 0,
-              soc: val.soc || 0,
-              connected: true
+              soc: val.soc || 0
             }));
 
             // Historie pro grafy
@@ -199,6 +205,7 @@ const App: React.FC = () => {
       if (unsubscribeBattery) unsubscribeBattery();
       if (unsubscribeWeb) unsubscribeWeb();
       if (unsubscribeRecovery) unsubscribeRecovery();
+      if (unsubscribeConnected) unsubscribeConnected();
     };
   }, []);
 
