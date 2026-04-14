@@ -1,6 +1,8 @@
 #include "modbus_handler.h"
 #include "logger.h"
 
+#define SIMULATE_MODBUS
+
 namespace ModbusHandler {
 
 ModbusMaster node;
@@ -96,6 +98,17 @@ bool update() {
     if (millis() - lastRead > 3000) {
         lastRead = millis();
 
+#ifdef SIMULATE_MODBUS
+        // --- SIMULACE DAT (pro testování bez RS485) ---
+        battery_soc = 85.0 + (random(-20, 20) / 10.0); // 83% - 87%
+        battery_I = (random(-300, 300) / 10.0);       // -30A až 30A
+        battery_P = battery_I * 0.23;                  // Hrubý odhad výkonu
+        grid_I = (random(-100, 100) / 10.0);          // -10A až 10A
+        
+        status_msg = "SIMULACE OK";
+        webLog("SIM: P=" + String(battery_P) + "kW, SOC=" + String(battery_soc) + "%, I=" + String(battery_I) + "A");
+        return true;
+#else
         if (readBatteryData()) {
             status_msg = "SPOJENO OK.";
             webLog("P: " + String(battery_P) + " kW, SOC: " + String(battery_soc) + " %, I: " + String(battery_I) + " A, Grid: " + String(grid_I) + " A");
@@ -105,8 +118,10 @@ bool update() {
             webLog("Vse selhalo. Zkontrolovat zapojeni.");
             return false;
         }
+#endif
     }
     return false;
 }
 
 } // namespace ModbusHandler
+

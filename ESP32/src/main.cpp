@@ -5,8 +5,8 @@
 #include "modbus_handler.h"
 #include "firebase_handler.h"
 
-#define WIFI_SSID "DvorNet"
-#define WIFI_PASS "dvor62tuc"
+#define WIFI_SSID "Rokle"
+#define WIFI_PASS "Centrum-17"
 String currentVersion = "";
 
 #define OUT1 23
@@ -80,23 +80,35 @@ void setup() {
         att++;
     }
 
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nWiFi pripojeno!");
+        Serial.print("IP adresa: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println("\nWiFi se NEPRIPOJILO vyprsel timeout!");
+    }
+
     TIME.begin();
     ModbusHandler::setup();
     FirebaseHandler::setup();
 
     if(FirebaseHandler::recoverData(idx,power_mode))
     {
+        Serial.print("Obnova stavu: Stupen="); Serial.print(idx); 
+        Serial.print(", Rezim="); Serial.println(power_mode);
+        
         for (int i = 0; i < idx; i++)
         {
-            digitalWrite(outputs[i],LOW);
+            Serial.print("--- Spinam vystup index "); Serial.print(i);
+            Serial.print(" (GPIO "); Serial.print(outputs[i]); Serial.println(")");
+            digitalWrite(outputs[i], LOW);
+            delay(100); // Krátká pauza pro spolehlivé sepnutí relé
         }
+        Serial.println("Obnova dokoncena.");
     }
 
-    // Vesion (basead on commit)
-    currentVersion = OTA::getCurrentSHA();
-    if (currentVersion == "") currentVersion = "boot from USB";
-    else currentVersion = currentVersion.substring(0, 7);
 
+    currentVersion = OTA::getCurrentSHA().substring(0,7);
     webLog("Start systemu - verze " + currentVersion);
 }
 

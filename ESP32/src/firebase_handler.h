@@ -4,7 +4,7 @@
 #include <addons/RTDBHelper.h>
 #include "logger.h"
 
-#define FIREBASE_DATABASE_URL "tucapyenergy-default-rtdb.europe-west1.firebasedatabase.app"
+#define FIREBASE_DATABASE_URL "https://tucapyenergy-default-rtdb.europe-west1.firebasedatabase.app"
 #define API_KEY "AIzaSyAA9CCYeT44Mt8BLOkqpL4uu3cp5gpaevs"
 
 #define USER_EMAIL "esp32@tucapy.cz"
@@ -29,15 +29,19 @@ void setup() {
     Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
 
+    Serial.println("Cekam na Firebase token...");
     unsigned long t = millis();
-    while (!Firebase.ready() && millis() - t < 5000) {
+    while (!Firebase.ready() && millis() - t < 10000) {
         delay(100);
+        Serial.print(".");
     }
     
     if (Firebase.ready()) {
-        Serial.println("Firebase: READY");
+        Serial.print("\nFirebase: READY (UID: ");
+        Serial.print(auth.token.uid.c_str());
+        Serial.println(")");
     } else {
-        Serial.println("Firebase: NOT READY after 5s");
+        Serial.println("\nFirebase: NOT READY. Zkontroluj WiFi nebo přihlašovací údaje.");
     }
 }
 
@@ -46,14 +50,14 @@ bool checkDataAge(FirebaseJson & json)
     FirebaseJsonData res;
     json.get(res,"last_update");
     int timediff=time(NULL) - res.intValue;
-    return (timediff>60);
+    return (timediff<60);
 }
 
 bool recoverData(int & idx, bool & power_mode)
 {
-    if(!Firebase.RTDB.getJSON(&fbdo,"/energy_data"))return false;
+    if(!Firebase.RTDB.getJSON(&fbdo,"/recovery_data"))return false;
     FirebaseJson* json = fbdo.jsonObjectPtr();
-    if(!checkDataAge(*json))return false;
+    if(!checkDataAge(*json)){Serial.println("check dataage fail");return false;}
 
     FirebaseJsonData res;
     json->get(res,"idx");
@@ -89,7 +93,7 @@ void updateData(float battery_P, float battery_I, float grid_I, float battery_so
     batteryJson.set("soc", battery_soc);
 
     if (!Firebase.RTDB.setJSON(&fbdo, "/battery_data", &batteryJson)) {
-        webLog("FB err(battery) " + String(fbdo.httpCode()) + ": " + fbdo.errorReason());
+        webLog("FB err(battery) " + String(fbdo.httpCode()) + ": " + fbdo.errorReason(), true);
     }
 
     // --- Systém ---
@@ -99,17 +103,17 @@ void updateData(float battery_P, float battery_I, float grid_I, float battery_so
     systemJson.set("console_log", trimmedLogs);
 
     if (!Firebase.RTDB.setJSON(&fbdo, "/web_data", &systemJson)) {
-        webLog("FB err(system) " + String(fbdo.httpCode()) + ": " + fbdo.errorReason());
+        webLog("FB err(system) " + String(fbdo.httpCode()) + ": " + fbdo.errorReason(), true);
     }
 
     // --- Řízení ---
     FirebaseJson controlJson;
-    controlJson.set("relay_idx", relay_idx);
-    controlJson.set("power_mod", power_mode);
+    controlJson.set("idx", relay_idx);
+    controlJson.set("power_mode", power_mode);
     controlJson.set("last_update", (int)time(NULL));
 
     if (!Firebase.RTDB.setJSON(&fbdo, "/recovery_data", &controlJson)) {
-        webLog("FB err(control) " + String(fbdo.httpCode()) + ": " + fbdo.errorReason());
+        webLog("FB err(control) " + String(fbdo.httpCode()) + ": " + fbdo.errorReason(), true);
     }
     }
 

@@ -185,7 +185,7 @@ const App: React.FC = () => {
             const val = snapshot.val();
             setData(prev => ({
               ...prev,
-              relayIdx: val.relay_idx || 0,
+              relayIdx: val.idx || 0, // Opraveno na "idx"
               lastUpdate: val.last_update || 0
             }));
           }
