@@ -92,7 +92,7 @@ void setup() {
     ModbusHandler::setup();
     FirebaseHandler::setup();
 
-    Serial.println("// TEST2 UPDATE FROM AIR //");
+    Serial.println("// TEST 3 UPDATE FROM AIR //");
 
     if(FirebaseHandler::recoverData(idx,power_mode))
     {
