@@ -22,8 +22,8 @@ const int n_outputs=8;
 
 int upper_soc = 80;
 int lower_soc = 60;
-int upper_A = 2;
-int lower_A = 0;
+int upper_current = 2;
+int lower_current = 0;
 
 #define OTA_INTERVAL 60000
 
@@ -93,7 +93,7 @@ void setup() {
     FirebaseHandler::setup();
 
 
-    FirebaseHandler::getConfigData(upper_soc,lower_soc,upper_A,lower_A);
+    FirebaseHandler::getConfigData(upper_soc,lower_soc,upper_current,lower_current);
 
     if(FirebaseHandler::recoverData(idx,power_mode))
     {
@@ -121,8 +121,9 @@ void loop() {
         OTA::check();
     }
 
-    FirebaseHandler::getConfigData(upper_soc,lower_soc,upper_A,lower_A);
-    
+    FirebaseHandler::getConfigData(upper_soc,lower_soc,upper_current,lower_current);
+    webLog(String(lower_current)+String(upper_current)+String(lower_soc)+String(upper_soc),false);
+
     bool modbusOK = ModbusHandler::update();
     
     if(modbusOK)
@@ -138,11 +139,11 @@ void loop() {
         
         // Mezi přepnutím stupňů čekáme aspoň 10 vteřin pro ustálení
         if (millis() - lastSwitch > 10000) {
-            if(power_mode && (ModbusHandler::battery_I>=upper_A)) {
+            if(power_mode && (ModbusHandler::battery_I>=upper_current)) {
                 turn_on();
                 lastSwitch = millis();
             }
-            if(power_mode && (ModbusHandler::battery_I<=lower_A)) {
+            if(power_mode && (ModbusHandler::battery_I<=lower_current)) {
                 turn_off();
                 lastSwitch = millis();
             }

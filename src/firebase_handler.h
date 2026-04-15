@@ -45,9 +45,6 @@ void setup() {
     }
 }
 
-bool updateRegulationValues()
-{
-}
 
 
 bool checkDataAge(FirebaseJson & json)
@@ -73,21 +70,20 @@ bool recoverData(int & idx, bool & power_mode)
     return true;
 }
 
-bool getConfigData(int & upper_soc, int & lower_soc, int & upper_A,int & lower_A)
+bool getConfigData(int & upper_soc, int & lower_soc, int & upper_current,int & lower_current)
 {
     if(!Firebase.RTDB.getJSON(&fbdo,"/config_data"))return false;
     FirebaseJson* json = fbdo.jsonObjectPtr();
-    if(!checkDataAge(*json))return false;
-
+    
     FirebaseJsonData res;
     json->get(res,"upper_soc");
     upper_soc=res.intValue;
     json->get(res,"lower_soc");
     lower_soc=res.intValue;
-    json->get(res,"upper_A");
-    upper_A=res.intValue;
-    json->get(res,"lower_A");
-    upper_A=res.intValue;
+    json->get(res,"upper_current");
+    upper_current=res.intValue;
+    json->get(res,"lower_current");
+    lower_current=res.intValue;
     
     return true;
 }
