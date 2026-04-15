@@ -121,7 +121,8 @@ void loop() {
         OTA::check();
     }
 
-
+    FirebaseHandler::getConfigData(upper_soc,lower_soc,upper_A,lower_A);
+    
     bool modbusOK = ModbusHandler::update();
     
     if(modbusOK)
