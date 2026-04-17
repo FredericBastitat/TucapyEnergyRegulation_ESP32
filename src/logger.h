@@ -16,17 +16,24 @@ class Time
         }   
         void begin()
         {
-            //Wifi....
-
-            //Time
-            configTime(3600,3600,"pool.ntp.org","time.google.com");
-            tm time;
-            while (!getLocalTime(&time))
-            {
+            //WiFi check would be good here, but we'll just add a timeout
+            configTime(3600, 3600, "pool.ntp.org", "time.google.com");
+            tm time_check;
+            
             Serial.println("Setting up time...");
-            delay(500);
+            unsigned long startWait = millis();
+            // Wait for time to sync for max 10 seconds
+            while (!getLocalTime(&time_check) && (millis() - startWait < 10000))
+            {
+                delay(500);
+                Serial.print(".");
             }
-            Serial.println("Time was setup.");
+
+            if (getLocalTime(&time_check)) {
+                Serial.println("\nTime was setup.");
+            } else {
+                Serial.println("\nTime setup failed (timeout).");
+            }
         }
 
         bool update() {

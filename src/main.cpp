@@ -5,8 +5,8 @@
 #include "modbus_handler.h"
 #include "firebase_handler.h"
 
-#define WIFI_SSID "Rokle"
-#define WIFI_PASS "Centrum-17"
+#define WIFI_SSID "DvorNet"
+#define WIFI_PASS "dvor62tuc"
 String currentVersion = "";
 
 #define OUT1 23
@@ -122,7 +122,6 @@ void loop() {
     }
 
     FirebaseHandler::getConfigData(upper_soc,lower_soc,upper_current,lower_current);
-    webLog(String(lower_current)+String(upper_current)+String(lower_soc)+String(upper_soc),false);
 
     bool modbusOK = ModbusHandler::update();
     
